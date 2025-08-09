@@ -37,12 +37,12 @@
 #       - name: Debug secrets and vars
 #         run: |
 #           USERNAME="${{ secrets.EMAIL_USERNAME }}"
-#           PASSWORD="${{ secrets.EMAIL_PASSWORD }}"
+#           PASSWORD="${{ secrets.PASS }}"
 
 #           echo "Secrets username: $USERNAME"
 #           echo "Secrets password length: ${#PASSWORD}"
 #           echo "Env var username: $EMAIL_USERNAME"
-#           echo "Env var password length: ${#EMAIL_PASSWORD}"
+#           echo "Env var password length: ${#PASS}"
 
 #       - name: Send APK via Email
 #         uses: dawidd6/action-send-mail@v3
@@ -50,7 +50,7 @@
 #           server_address: smtp.gmail.com
 #           server_port: 465
 #           username: ${{ secrets.EMAIL_USERNAME }}
-#           password: ${{ secrets.EMAIL_PASSWORD }}
+#           password: ${{ secrets.PASS }}
 #           subject: "New Flutter Build - ${{ github.ref_name }}"
 #           body: |
 #             Hello,
@@ -112,12 +112,12 @@ jobs:
         run: |
           echo "🔍 Debugging email setup..."
           echo "Username length: ${#EMAIL_USERNAME}"
-          echo "Password length: ${#EMAIL_PASSWORD}"
+          echo "Password length: ${#PASS}"
           echo "Username starts with: ${EMAIL_USERNAME:0:3}..."
           echo "Username ends with: ...${EMAIL_USERNAME: -10}"
         env:
           EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          PASS: ${{ secrets.PASS }}
 
       - name: Test SMTP Connection
         run: |
@@ -142,7 +142,7 @@ jobs:
           server_port: 465
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
+          password: ${{ secrets.PASS }}
           subject: "Flutter Build - Method 1 (Port 465) - ${{ github.ref_name }}"
           body: |
             Hello,
@@ -170,7 +170,7 @@ jobs:
           server_port: 587
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
+          password: ${{ secrets.PASS }}
           subject: "Flutter Build - Method 2 (Port 587) - ${{ github.ref_name }}"
           body: |
             Hello,
@@ -196,7 +196,7 @@ jobs:
           server_port: 587
           secure: false
           username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
+          password: ${{ secrets.PASS }}
           subject: "Flutter Build - Method 3 (No SSL) - ${{ github.ref_name }}"
           body: |
             Hello,
