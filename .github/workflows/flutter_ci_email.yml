@@ -33,6 +33,11 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
+      - name: Debug secrets
+        run: |
+          echo "EMAIL_USERNAME secret value: ${{ secrets.EMAIL_USERNAME }}"
+          echo "EMAIL_PASSWORD secret length: ${#${{ secrets.EMAIL_PASSWORD }}}"
+
       - name: Send APK via Email
         uses: dawidd6/action-send-mail@v3
         with:
