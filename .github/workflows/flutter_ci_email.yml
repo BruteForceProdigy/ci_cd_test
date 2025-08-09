@@ -1,4 +1,68 @@
-name: Flutter CI - Email APK
+# name: Flutter CI - Email APK
+
+# on:
+#   push:
+#     branches: [send_email]
+#   workflow_dispatch:
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     # environment: CI/CD
+
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v3
+
+#       - name: Set up Flutter
+#         uses: subosito/flutter-action@v2
+#         with:
+#           flutter-version: "3.24.4"
+
+#       - name: Install dependencies
+#         run: flutter pub get
+
+#       - name: Analyze (static code check)
+#         run: flutter analyze
+
+#       - name: Format check
+#         run: dart format . --set-exit-if-changed
+
+#       - name: Run tests
+#         run: flutter test
+
+#       - name: Build release APK
+#         run: flutter build apk --release
+
+#       - name: Debug secrets and vars
+#         run: |
+#           USERNAME="${{ secrets.EMAIL_USERNAME }}"
+#           PASSWORD="${{ secrets.EMAIL_PASSWORD }}"
+
+#           echo "Secrets username: $USERNAME"
+#           echo "Secrets password length: ${#PASSWORD}"
+#           echo "Env var username: $EMAIL_USERNAME"
+#           echo "Env var password length: ${#EMAIL_PASSWORD}"
+
+#       - name: Send APK via Email
+#         uses: dawidd6/action-send-mail@v3
+#         with:
+#           server_address: smtp.gmail.com
+#           server_port: 465
+#           username: ${{ secrets.EMAIL_USERNAME }}
+#           password: ${{ secrets.EMAIL_PASSWORD }}
+#           subject: "New Flutter Build - ${{ github.ref_name }}"
+#           body: |
+#             Hello,
+#             Your latest Flutter build is ready.
+#             Commit: ${{ github.sha }}
+#           to: bruteforceprodigy.cloud@gmail.com
+#           from: ${{ secrets.EMAIL_USERNAME }}
+#           attachments: build/app/outputs/flutter-apk/app-release.apk
+# # hello
+# # hello 2
+
+name: Flutter CI - Email APK (Debug)
 
 on:
   push:
@@ -8,11 +72,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # environment: CI/CD
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -34,30 +97,126 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Debug secrets and vars
+      - name: Verify APK exists
         run: |
-          USERNAME="${{ secrets.EMAIL_USERNAME }}"
-          PASSWORD="${{ secrets.EMAIL_PASSWORD }}"
+          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            echo "✅ APK found successfully"
+            ls -la build/app/outputs/flutter-apk/
+          else
+            echo "❌ APK not found!"
+            find . -name "*.apk" -type f
+            exit 1
+          fi
 
-          echo "Secrets username: $USERNAME"
-          echo "Secrets password length: ${#PASSWORD}"
-          echo "Env var username: $EMAIL_USERNAME"
-          echo "Env var password length: ${#EMAIL_PASSWORD}"
+      - name: Debug Email Configuration
+        run: |
+          echo "🔍 Debugging email setup..."
+          echo "Username length: ${#EMAIL_USERNAME}"
+          echo "Password length: ${#EMAIL_PASSWORD}"
+          echo "Username starts with: ${EMAIL_USERNAME:0:3}..."
+          echo "Username ends with: ...${EMAIL_USERNAME: -10}"
+        env:
+          EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
 
-      - name: Send APK via Email
+      - name: Test SMTP Connection
+        run: |
+          echo "🔗 Testing SMTP connection..."
+          # Install required tools
+          sudo apt-get update
+          sudo apt-get install -y telnet openssl
+
+          # Test SMTP connection
+          timeout 10s telnet smtp.gmail.com 465 || echo "Direct connection failed"
+
+          # Test with openssl
+          echo "Testing SSL connection..."
+          timeout 10s openssl s_client -connect smtp.gmail.com:465 -quiet </dev/null || echo "SSL connection test completed"
+
+      - name: Send APK via Email (Method 1 - Port 465)
+        id: email_method1
+        continue-on-error: true
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
+          secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "New Flutter Build - ${{ github.ref_name }}"
+          subject: "Flutter Build - Method 1 (Port 465) - ${{ github.ref_name }}"
           body: |
-            Hello,  
-            Your latest Flutter build is ready.  
-            Commit: ${{ github.sha }}
+            Hello,
+
+            This is a test using SMTP port 465 with SSL.
+
+            Details:
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Build Number: ${{ github.run_number }}
+
+            Best regards,
+            GitHub Actions CI/CD
           to: bruteforceprodigy.cloud@gmail.com
           from: ${{ secrets.EMAIL_USERNAME }}
           attachments: build/app/outputs/flutter-apk/app-release.apk
-# hello
-# hello 2
+
+      - name: Send APK via Email (Method 2 - Port 587)
+        if: steps.email_method1.outcome == 'failure'
+        id: email_method2
+        continue-on-error: true
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Flutter Build - Method 2 (Port 587) - ${{ github.ref_name }}"
+          body: |
+            Hello,
+
+            This is a test using SMTP port 587 with STARTTLS.
+
+            Details:
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Build Number: ${{ github.run_number }}
+
+            Best regards,
+            GitHub Actions CI/CD
+          to: bruteforceprodigy.cloud@gmail.com
+          from: ${{ secrets.EMAIL_USERNAME }}
+          attachments: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Send APK via Email (Method 3 - No SSL)
+        if: steps.email_method1.outcome == 'failure' && steps.email_method2.outcome == 'failure'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          secure: false
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Flutter Build - Method 3 (No SSL) - ${{ github.ref_name }}"
+          body: |
+            Hello,
+
+            This is a test using SMTP port 587 without SSL (fallback method).
+
+            Details:
+            - Branch: ${{ github.ref_name }}
+            - Commit: ${{ github.sha }}
+            - Build Number: ${{ github.run_number }}
+
+            Best regards,
+            GitHub Actions CI/CD
+          to: bruteforceprodigy.cloud@gmail.com
+          from: ${{ secrets.EMAIL_USERNAME }}
+          attachments: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Email Status Report
+        if: always()
+        run: |
+          echo "📧 Email sending status report:"
+          echo "Method 1 (Port 465): ${{ steps.email_method1.outcome }}"
+          echo "Method 2 (Port 587): ${{ steps.email_method2.outcome }}"
