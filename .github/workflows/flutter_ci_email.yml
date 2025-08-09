@@ -36,8 +36,11 @@ jobs:
 
       - name: Debug secrets and vars
         run: |
-          echo "Secrets username: ${{ secrets.EMAIL_USERNAME }}"
-          echo "Secrets password length: ${#${{ secrets.EMAIL_PASSWORD }}}"
+          USERNAME="${{ secrets.EMAIL_USERNAME }}"
+          PASSWORD="${{ secrets.EMAIL_PASSWORD }}"
+
+          echo "Secrets username: $USERNAME"
+          echo "Secrets password length: ${#PASSWORD}"
           echo "Env var username: $EMAIL_USERNAME"
           echo "Env var password length: ${#EMAIL_PASSWORD}"
 
