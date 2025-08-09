@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: CI/CD
+    # environment: CI/CD
 
     steps:
       - name: Checkout Code
