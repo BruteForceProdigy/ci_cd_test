@@ -1,0 +1,51 @@
+name: Flutter CI - Email APK
+
+on:
+  push:
+    branches: [send_email]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ununtu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Flutter
+      uses: subsito/flutter-action@v2
+      with:
+        flutter-version: '3.24.4'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Analyze (static code check)
+      run: flutter analyze
+
+    - name: Format check
+      run: dart format . --set-exit-if-changed
+
+    - name: Run tests
+      run: flutter test
+
+    - name: Build release APK
+      run: flutter build apk --release
+
+    - name: Send APK via Email
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "New Flutter Build - ${{ github.ref_name }}"
+        body: |
+         Hello,  
+         Your latest Flutter build is ready.  
+         Commit: ${{ github.sha }}
+        to: youremail@example.com
+        from: ${{ secrets.EMAIL_USERNAME }}
+        attachments: build/app/outputs/flutter-apk/app-release.apk
+
